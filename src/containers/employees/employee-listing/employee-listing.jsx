@@ -224,7 +224,7 @@ const EmployeesListing = () => {
     <div>
       {contextHolder}
       <PageHeader
-        title='Dashboard'
+        title='Employees'
         actionButton={[
           { label: 'Add Employee', onClick: () => {
             navigate("/add-employee")

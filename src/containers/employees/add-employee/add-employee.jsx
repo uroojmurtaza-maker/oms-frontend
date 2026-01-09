@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import useApiHandler from '../../../hooks/api-handler';
 import { useAuth } from '../../../context/authContext';
 import Spinner from '../../../atoms/spinner/spinner';
+import dayjs from 'dayjs';
 const { Option } = Select;
 
 const AddEmployee = () => {
@@ -29,19 +30,25 @@ const AddEmployee = () => {
   const { postData, loading, apiMessage } = useApiHandler(token);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const showError = useCallback((msg) => {
-    messageApi.open({
-      type: 'error',
-      content: msg,
-    });
-  }, [messageApi]);
+  const showError = useCallback(
+    (msg) => {
+      messageApi.open({
+        type: 'error',
+        content: msg
+      });
+    },
+    [messageApi]
+  );
 
-  const showSuccess = useCallback((msg) => {
-    messageApi.open({
-      type: 'success',
-      content: msg,
-    });
-  }, [messageApi]);
+  const showSuccess = useCallback(
+    (msg) => {
+      messageApi.open({
+        type: 'success',
+        content: msg
+      });
+    },
+    [messageApi]
+  );
 
   // Show error message when apiMessage changes
   useEffect(() => {
@@ -84,18 +91,26 @@ const AddEmployee = () => {
 
   const onFinish = async (values) => {
     try {
+      if (imageUrl === null) {
+        showError('Please upload a profile picture');
+        return;
+      }
       // Create FormData for file upload
       const formData = new FormData();
 
       // Format dates if they exist (DatePicker returns dayjs objects)
       const data = {
         ...values,
-        dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format('YYYY-MM-DD') : undefined,
-        joiningDate: values.joiningDate ? values.joiningDate.format('YYYY-MM-DD') : undefined,
+        dateOfBirth: values.dateOfBirth
+          ? values.dateOfBirth.format('YYYY-MM-DD')
+          : undefined,
+        joiningDate: values.joiningDate
+          ? values.joiningDate.format('YYYY-MM-DD')
+          : undefined
       };
 
       // Remove undefined, null, or empty string fields and add to FormData
-      Object.keys(data).forEach(key => {
+      Object.keys(data).forEach((key) => {
         if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
           // Skip profilePictureUrl as we'll add the file separately
           if (key !== 'profilePictureUrl') {
@@ -111,10 +126,10 @@ const AddEmployee = () => {
 
       // Call API to add employee with FormData
       await postData('/users/create-employee', formData, false, false);
-      
+
       // Show success message
       showSuccess('Employee added successfully');
-      
+
       // Reset form and navigate back after a short delay
       setTimeout(() => {
         form.resetFields();
@@ -123,7 +138,6 @@ const AddEmployee = () => {
         navigate('/dashboard');
       }, 1500);
     } catch (err) {
-      // Error is already handled by the API handler and shown via useEffect
       console.error('Error adding employee:', err);
     }
   };
@@ -131,18 +145,15 @@ const AddEmployee = () => {
   return (
     <Layout>
       {contextHolder}
-      <PageHeader title='Add Employee'  onBack={() => navigate('/dashboard')}/>
+      <PageHeader title='Add Employee' onBack={() => navigate('/dashboard')} />
       <div className='bg-white p-8 rounded-lg max-w-5xl mx-auto shadow-md'>
-       
-        
-        {/* Profile Picture Uploader - Circular at Top */}
         <div className='flex justify-center mb-8'>
           <div className='relative'>
             <div className='w-36 h-36 rounded-full overflow-hidden border-4 border-gray-200 bg-gray-100 flex items-center justify-center'>
               {imageUrl ? (
-                <img 
-                  src={imageUrl} 
-                  alt="Profile" 
+                <img
+                  src={imageUrl}
+                  alt='Profile'
                   className='w-full h-full object-cover'
                 />
               ) : (
@@ -150,20 +161,20 @@ const AddEmployee = () => {
               )}
             </div>
             <Upload
-              name="avatar"
-              listType="text"
+              name='avatar'
+              listType='text'
               showUploadList={false}
               beforeUpload={beforeUpload}
               onChange={handleChange}
-              accept="image/*"
-              className="absolute bottom-0 right-0"
+              accept='image/*'
+              className='absolute bottom-0 right-0'
             >
-              <Button 
-                type="primary" 
-                shape="circle" 
+              <Button
+                type='primary'
+                shape='circle'
                 icon={<UploadOutlined />}
-                size="small"
-                className="bg-primary hover:bg-primary/80 border-2 border-white"
+                size='small'
+                className='bg-primary hover:bg-primary/80 border-2 border-white'
               />
             </Upload>
           </div>
@@ -189,7 +200,7 @@ const AddEmployee = () => {
               <Form.Item
                 name='name'
                 label='Name'
-                rules={[{ required: true, message: 'Name is required' }]}
+                rules={[{ required: true, message: 'Name is required' },{ min: 3, message: 'Name must be at least 3 characters'   }, ]}
               >
                 <Input placeholder='Enter Name' size='large' />
               </Form.Item>
@@ -244,7 +255,7 @@ const AddEmployee = () => {
                 label='Department'
                 rules={[{ required: true, message: 'Department is required' }]}
               >
-                <Select placeholder='Select Department' size='large'    >
+                <Select placeholder='Select Department' size='large'>
                   <Option value='Engineering'>Engineering</Option>
                   <Option value='Sales'>Sales</Option>
                   <Option value='Marketing'>Marketing</Option>
@@ -262,6 +273,7 @@ const AddEmployee = () => {
                   style={{ width: '100%' }}
                   placeholder='Select Date of Birth'
                   size='large'
+                  disabledDate={(current) => current && current > dayjs()}
                 />
               </Form.Item>
             </Col>
@@ -278,6 +290,7 @@ const AddEmployee = () => {
                   style={{ width: '100%' }}
                   placeholder='Select Joining Date'
                   size='large'
+                  disabledDate={(current) => current && current > dayjs()}
                 />
               </Form.Item>
             </Col>
@@ -285,8 +298,16 @@ const AddEmployee = () => {
 
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Form.Item name='phoneNumber' label='Phone Number' rules={[]}>
-                <Input placeholder='Enter Phone Number' size='large' />
+              <Form.Item name='phoneNumber' label='Phone Number' rules={[
+                { required: true, message: 'Phone Number is required' },
+                { pattern: /^\d{10}$/, message: 'Phone Number must be 10 digits' }
+                
+
+
+              ]}>
+                <Input 
+                
+                placeholder='Enter Phone Number' size='large' inputMode='numeric' />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
@@ -305,20 +326,18 @@ const AddEmployee = () => {
             </Col>
           </Row>
 
-         <div className='flex justify-end'>
-          <Button 
-            variant='solid' 
-            color='primary' 
-            size='md'  
-            className='py-10 px-5'
-            htmlType='submit'
-            disabled={loading}
-          >
-            {loading ? 'Adding...' : 'Add Employee'}
-          </Button>
-         </div>
-          
-         
+          <div className='flex justify-end'>
+            <Button
+              variant='solid'
+              color='primary'
+              size='md'
+              className='py-3 px-5'
+              htmlType='submit'
+              disabled={loading}
+            >
+              {loading ? 'Adding...' : 'Add Employee'}
+            </Button>
+          </div>
         </Form>
       </div>
       {loading && <Spinner />}
