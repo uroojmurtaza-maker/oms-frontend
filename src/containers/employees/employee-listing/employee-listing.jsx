@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Popconfirm, message, Avatar } from 'antd';
-import { EditOutlined, DeleteOutlined, EyeOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  UserOutlined
+} from '@ant-design/icons';
 import Button from '../../../atoms/button/button';
 import PageHeader from '../../../components/page-header/page-header';
 import CustomTable from '../../../components/table/table';
@@ -12,18 +17,25 @@ import Spinner from '../../../atoms/spinner/spinner';
 const EmployeesListing = () => {
   const [page, setPage] = useState(1);
   const [data, setData] = useState([]);
-  const [totalPages, setTotalPages] = useState(0);
   const navigate = useNavigate();
   const { token } = useAuth();
-  const { getData, deleteData, loading, apiMessage, totalPages: apiTotalPages } = useApiHandler(token);
+  const {
+    getData,
+    deleteData,
+    loading,
+    apiMessage,
+  } = useApiHandler(token);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const showError = useCallback((msg) => {
-    messageApi.open({
-      type: 'error',
-      content: msg,
-    });
-  }, [messageApi]);
+  const showError = useCallback(
+    (msg) => {
+      messageApi.open({
+        type: 'error',
+        content: msg
+      });
+    },
+    [messageApi]
+  );
 
   // Show error message when apiMessage changes
   useEffect(() => {
@@ -36,34 +48,20 @@ const EmployeesListing = () => {
   const fetchEmployees = useCallback(async () => {
     try {
       const response = await getData('/users/get-employees', {});
-      
-      // Handle different response structures
-      if (response?.data) {
-        setData(response.data);
-        setTotalPages(response.totalPages || apiTotalPages || 1);
-      } else if (Array.isArray(response)) {
-        setData(response);
-        setTotalPages(1);
-      } else {
-        setData(response?.users || response?.employees || []);
-        setTotalPages(response?.totalPages || 1);
-      }
+      setData(response?.employees || []);
+     
     } catch (err) {
-      // Error is already handled by the API handler and shown via useEffect
       console.error('Error fetching employees:', err);
       setData([]);
     }
-  }, [getData, page, apiTotalPages]);
+  }, [getData]);
 
-  // Fetch data on component mount and when page changes
   useEffect(() => {
     fetchEmployees();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-
   const columns = [
-   
     {
       title: 'Employee ID',
       dataIndex: 'employeeId',
@@ -74,14 +72,19 @@ const EmployeesListing = () => {
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
-        <div className="flex items-center gap-3">
+        <div className='flex items-center gap-3'>
           <Avatar
-            src={record.profilePicture || record.image || record.avatar || record.profilePictureUrl}
+            src={
+              record.profilePicture ||
+              record.image ||
+              record.avatar ||
+              record.profilePictureUrl
+            }
             icon={<UserOutlined />}
-            size="large"
-            className="flex-shrink-0"
+            size='large'
+            className='flex-shrink-0'
           />
-          <span className="capitalize">{text || '----'}</span>
+          <span className='capitalize'>{text || '----'}</span>
         </div>
       )
     },
@@ -132,61 +135,57 @@ const EmployeesListing = () => {
       dataIndex: 'status',
       key: 'status'
     },
-    // {
-    //   title: 'Role',
-    //   dataIndex: 'role',
-    //   key: 'role'
-    // },
+
     {
       title: 'Actions',
       key: 'actions',
       width: 120,
       fixed: 'right',
       render: (_, record) => (
-        <div className="flex gap-2">
+        <div className='flex gap-2'>
           <Button
-            variant="solid"
-            color="blue"
-            size="sm"
+            variant='solid'
+            color='blue'
+            size='sm'
             icon={<EyeOutlined />}
-            iconPosition="left"
+            iconPosition='left'
             onClick={(e) => {
               e.stopPropagation();
               // handleView(record);
             }}
-            className="px-3 py-2"
+            className='px-3 py-2'
           />
           <Button
-            variant="solid"
-            color="primary"
-            size="sm"
+            variant='solid'
+            color='primary'
+            size='sm'
             icon={<EditOutlined />}
-            iconPosition="left"
+            iconPosition='left'
             onClick={(e) => {
               e.stopPropagation();
               handleUpdate(record);
             }}
-            className="px-3 py-2"
+            className='px-3 py-2'
           />
           <Popconfirm
-            title="Delete Employee"
-            description="Are you sure you want to delete this employee?"
+            title='Delete Employee'
+            description='Are you sure you want to delete this employee?'
             onConfirm={(e) => {
               e?.stopPropagation();
               handleDelete(record.id);
             }}
             onCancel={(e) => e?.stopPropagation()}
-            okText="Yes"
-            cancelText="No"
+            okText='Yes'
+            cancelText='No'
           >
             <span onClick={(e) => e.stopPropagation()}>
               <Button
-                variant="solid"
-                color="danger"
-                size="sm"
+                variant='solid'
+                color='danger'
+                size='sm'
                 icon={<DeleteOutlined />}
-                iconPosition="left"
-                className="px-3 py-2"
+                iconPosition='left'
+                className='px-3 py-2'
               />
             </span>
           </Popconfirm>
@@ -195,28 +194,22 @@ const EmployeesListing = () => {
     }
   ];
 
-
   const handleRowClick = (record) => {
     console.log('Row clicked:', record);
-    // Add your row click logic here
   };
 
   const handleUpdate = (record) => {
     console.log('Update employee:', record);
     message.info(`Update functionality for employee ${record.name}`);
-    // Add your update logic here
-    // Example: navigate to edit page or open modal
-    // navigate(`/employees/edit/${record.id}`);
+    
   };
 
   const handleDelete = async (id) => {
     try {
       await deleteData(`/users/${id}`, {});
       message.success('Employee deleted successfully');
-      // Fetch updated list
       fetchEmployees();
     } catch (error) {
-      // Error is already handled by the API handler
       console.error('Delete error:', error);
     }
   };
@@ -226,9 +219,12 @@ const EmployeesListing = () => {
       <PageHeader
         title='Employees'
         actionButton={[
-          { label: 'Add Employee', onClick: () => {
-            navigate("/add-employee")
-          } }
+          {
+            label: 'Add Employee',
+            onClick: () => {
+              navigate('/add-employee');
+            }
+          }
         ]}
       />
 
@@ -238,7 +234,6 @@ const EmployeesListing = () => {
         rowClick={handleRowClick}
         page={page}
         setPage={setPage}
-        totalPages={totalPages}
         loading={loading}
       />
       {loading && <Spinner />}
