@@ -1,21 +1,69 @@
-import { useState } from 'react';
-import { Popconfirm, message } from 'antd';
-import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { useState, useEffect, useCallback } from 'react';
+import { Popconfirm, message, Avatar } from 'antd';
+import { EditOutlined, DeleteOutlined, EyeOutlined, UserOutlined } from '@ant-design/icons';
 import Button from '../../../atoms/button/button';
 import PageHeader from '../../../components/page-header/page-header';
 import CustomTable from '../../../components/table/table';
 import { useNavigate } from 'react-router-dom';
+import useApiHandler from '../../../hooks/api-handler';
+import { useAuth } from '../../../context/authContext';
+import Spinner from '../../../atoms/spinner/spinner';
 
 const EmployeesListing = () => {
   const [page, setPage] = useState(1);
+  const [data, setData] = useState([]);
+  const [totalPages, setTotalPages] = useState(0);
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const { getData, deleteData, loading, apiMessage, totalPages: apiTotalPages } = useApiHandler(token);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const showError = useCallback((msg) => {
+    messageApi.open({
+      type: 'error',
+      content: msg,
+    });
+  }, [messageApi]);
+
+  // Show error message when apiMessage changes
+  useEffect(() => {
+    if (apiMessage) {
+      showError(apiMessage);
+    }
+  }, [apiMessage, showError]);
+
+  // Fetch employees data
+  const fetchEmployees = useCallback(async () => {
+    try {
+      const response = await getData('/users/get-employees', {});
+      
+      // Handle different response structures
+      if (response?.data) {
+        setData(response.data);
+        setTotalPages(response.totalPages || apiTotalPages || 1);
+      } else if (Array.isArray(response)) {
+        setData(response);
+        setTotalPages(1);
+      } else {
+        setData(response?.users || response?.employees || []);
+        setTotalPages(response?.totalPages || 1);
+      }
+    } catch (err) {
+      // Error is already handled by the API handler and shown via useEffect
+      console.error('Error fetching employees:', err);
+      setData([]);
+    }
+  }, [getData, page, apiTotalPages]);
+
+  // Fetch data on component mount and when page changes
+  useEffect(() => {
+    fetchEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+
   const columns = [
-    {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 80
-    },
+   
     {
       title: 'Employee ID',
       dataIndex: 'employeeId',
@@ -24,7 +72,18 @@ const EmployeesListing = () => {
     {
       title: 'Name',
       dataIndex: 'name',
-      key: 'name'
+      key: 'name',
+      render: (text, record) => (
+        <div className="flex items-center gap-3">
+          <Avatar
+            src={record.profilePicture || record.image || record.avatar || record.profilePictureUrl}
+            icon={<UserOutlined />}
+            size="large"
+            className="flex-shrink-0"
+          />
+          <span className="capitalize">{text || '----'}</span>
+        </div>
+      )
     },
     {
       title: 'Email',
@@ -73,11 +132,11 @@ const EmployeesListing = () => {
       dataIndex: 'status',
       key: 'status'
     },
-    {
-      title: 'Role',
-      dataIndex: 'role',
-      key: 'role'
-    },
+    // {
+    //   title: 'Role',
+    //   dataIndex: 'role',
+    //   key: 'role'
+    // },
     {
       title: 'Actions',
       key: 'actions',
@@ -136,22 +195,6 @@ const EmployeesListing = () => {
     }
   ];
 
-  const data = [
-    {
-      id: 1,
-      employeeId: 'EMP001',
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      designation: 'Developer',
-      department: 'Engineering',
-      phoneNumber: '1234567890',
-      dateOfBirth: '1990-05-15',
-      joiningDate: '2020-01-15',
-      salary: 75000.0,
-      status: 'Current Employee',
-      role: 'Employee'
-    }
-  ];
 
   const handleRowClick = (record) => {
     console.log('Row clicked:', record);
@@ -168,18 +211,18 @@ const EmployeesListing = () => {
 
   const handleDelete = async (id) => {
     try {
-      console.log('Delete employee:', id);
+      await deleteData(`/users/${id}`, {});
       message.success('Employee deleted successfully');
-      // Add your delete API call here
-      // await deleteEmployee(id);
       // Fetch updated list
+      fetchEmployees();
     } catch (error) {
-      message.error('Failed to delete employee');
+      // Error is already handled by the API handler
       console.error('Delete error:', error);
     }
   };
   return (
     <div>
+      {contextHolder}
       <PageHeader
         title='Dashboard'
         actionButton={[
@@ -195,8 +238,10 @@ const EmployeesListing = () => {
         rowClick={handleRowClick}
         page={page}
         setPage={setPage}
-        totalPages={1}
+        totalPages={totalPages}
+        loading={loading}
       />
+      {loading && <Spinner />}
     </div>
   );
 };

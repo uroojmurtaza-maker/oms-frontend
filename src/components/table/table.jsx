@@ -10,7 +10,7 @@ const CustomTable = ({
   page,
   setPage,
   totalPages,
-  pageSize = 7,
+  pageSize = 20,
   loading,
 }) => {
   // ✨ Enhance columns with smart auto-formatting
