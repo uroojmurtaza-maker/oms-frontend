@@ -13,29 +13,38 @@ const useApiHandler = (token) => {
   // ✅ Generic GET request
   const getData = useCallback(
     async (endpoint, params = {}) => {
+      const MIN_LOADING_TIME = 2000; // 2 seconds
+      const startTime = Date.now();
+  
       setLoading(true);
       setError(null);
-
+  
       try {
         const response = await axios.get(`${BASE_URL}${endpoint}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-          params, // ✅ this adds query parameters dynamically
+          params,
         });
-
-        setData(response.data);
-        setTotalPages(response?.data?.totalPages || 0);
+  
+        setData(response?.data);
+        setTotalPages(response?.data?.pagination?.totalPages || 0);
         return response.data;
       } catch (err) {
         setError(true);
         setApiMessage(err?.response?.data?.message || "Failed to fetch data");
       } finally {
-        setLoading(false);
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(MIN_LOADING_TIME - elapsedTime, 0);
+  
+        setTimeout(() => {
+          setLoading(false);
+        }, remainingTime);
       }
     },
     [token]
   );
+  
 
   // ✅ Generic POST request (custom URL or relative endpoint)
   const postData = useCallback(

@@ -10,7 +10,7 @@ const CustomTable = ({
   page,
   setPage,
   totalPages,
-  pageSize = 20,
+  pageSize = 6,
   loading,
 }) => {
   // ✨ Enhance columns with smart auto-formatting
@@ -90,6 +90,24 @@ const CustomTable = ({
           },
         }}
       >
+        <style>
+          {`
+            .ant-table-thead > tr > th .ant-table-column-sorter {
+              color: white !important;
+            }
+            .ant-table-thead > tr > th .ant-table-column-sorter .anticon {
+              color: white !important;
+            }
+            .ant-table-thead > tr > th .ant-table-column-sorter-up,
+            .ant-table-thead > tr > th .ant-table-column-sorter-down {
+              color: white !important;
+            }
+            .ant-table-thead > tr > th .ant-table-column-sorter-up.on,
+            .ant-table-thead > tr > th .ant-table-column-sorter-down.on {
+              color: white !important;
+            }
+          `}
+        </style>
         <Table
           columns={modifiedColumns}
           dataSource={data}

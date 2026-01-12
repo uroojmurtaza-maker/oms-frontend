@@ -16,16 +16,13 @@ import Spinner from '../../../atoms/spinner/spinner';
 
 const EmployeesListing = () => {
   const [page, setPage] = useState(1);
-  const [data, setData] = useState([]);
   const navigate = useNavigate();
   const { token } = useAuth();
-  const {
-    getData,
-    deleteData,
-    loading,
-    apiMessage,
-  } = useApiHandler(token);
+  const { getData, deleteData, loading, apiMessage, data,totalPages } =
+    useApiHandler(token);
   const [messageApi, contextHolder] = message.useMessage();
+
+  console.log('loading', data);
 
   const showError = useCallback(
     (msg) => {
@@ -46,15 +43,16 @@ const EmployeesListing = () => {
 
   // Fetch employees data
   const fetchEmployees = useCallback(async () => {
+    const params = {
+      page,
+      limit: 6
+    };
     try {
-      const response = await getData('/users/get-employees', {});
-      setData(response?.employees || []);
-     
+      await getData('/users/get-employees', params);
     } catch (err) {
       console.error('Error fetching employees:', err);
-      setData([]);
     }
-  }, [getData]);
+  }, [getData, page]);
 
   useEffect(() => {
     fetchEmployees();
@@ -71,6 +69,7 @@ const EmployeesListing = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
+      sorter: true,
       render: (text, record) => (
         <div className='flex items-center gap-3'>
           <Avatar
@@ -101,7 +100,8 @@ const EmployeesListing = () => {
     {
       title: 'Department',
       dataIndex: 'department',
-      key: 'department'
+      key: 'department',
+      sorter: true
     },
     {
       title: 'Phone Number',
@@ -116,7 +116,8 @@ const EmployeesListing = () => {
     {
       title: 'Joining Date',
       dataIndex: 'joiningDate',
-      key: 'joiningDate'
+      key: 'joiningDate',
+      sorter: true
     },
     {
       title: 'Salary',
@@ -201,7 +202,6 @@ const EmployeesListing = () => {
   const handleUpdate = (record) => {
     console.log('Update employee:', record);
     message.info(`Update functionality for employee ${record.name}`);
-    
   };
 
   const handleDelete = async (id) => {
@@ -218,6 +218,11 @@ const EmployeesListing = () => {
       {contextHolder}
       <PageHeader
         title='Employees'
+        showSearch={true}
+        searchPlaceholder='Search by name or email'
+        onSearch={(value) => {
+          console.log('Search value:', value);
+        }}
         actionButton={[
           {
             label: 'Add Employee',
@@ -230,11 +235,12 @@ const EmployeesListing = () => {
 
       <CustomTable
         columns={columns}
-        data={data}
+        data={data?.employees || []}
         rowClick={handleRowClick}
         page={page}
         setPage={setPage}
         loading={loading}
+        totalPages={totalPages}
       />
       {loading && <Spinner />}
     </div>
