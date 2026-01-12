@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import useApiHandler from '../../../hooks/api-handler';
 import { useAuth } from '../../../context/authContext';
 import Spinner from '../../../atoms/spinner/spinner';
+import axios from 'axios';
 import dayjs from 'dayjs';
 const { Option } = Select;
 
@@ -25,10 +26,25 @@ const AddEmployee = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [imageUrl, setImageUrl] = useState(null);
-  const [file, setFile] = useState(null);
+  const [profilePictureKey, setProfilePictureKey] = useState(null);
+  const [profilePictureUrl, setProfilePictureUrl] = useState(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
   const { token } = useAuth();
   const { postData, loading, apiMessage } = useApiHandler(token);
   const [messageApi, contextHolder] = message.useMessage();
+
+  // Helper function to construct public URL from S3 key
+  // Update these values with your actual S3 bucket details
+  const getPublicUrlFromKey = (key) => {
+    if (!key) return null;
+    
+    // Option 1: If you have bucket name and region, construct URL directly
+    // Uncomment and update these with your S3 bucket details:
+    // const BUCKET_NAME = 'your-bucket-name';
+    // const REGION = 'us-east-1'; // or your region
+    // return `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${key}`;
+    return null;
+  };
 
   const showError = useCallback(
     (msg) => {
@@ -74,58 +90,87 @@ const AddEmployee = () => {
     return isJpgOrPng && isLt2M;
   };
 
-  const handleChange = (info) => {
-    if (info.file.status === 'uploading') {
-      return;
-    }
-    if (info.file.status === 'done' || info.file.originFileObj) {
-      const fileObj = info.file.originFileObj || info.file;
-      // Store the actual file
-      setFile(fileObj);
-      // Also get base64 for preview
-      getBase64(fileObj, (url) => {
-        setImageUrl(url);
+  const handleProfileChange = async (file) => {
+    if (!file) return;
+
+    setUploadLoading(true);
+    try {
+      // Step 1: Get presigned URL from backend
+      const res = await postData('/users/upload-url', {
+        fileName: file.name,
+        fileType: file.type,
+      }, false, false);
+
+      const { uploadUrl, key, publicUrl } = res.data || res;
+
+      // Step 2: Direct upload to S3
+      // Note: axios.put() does NOT return public URL, it only uploads the file
+      await axios.put(uploadUrl, file, {
+        headers: {
+          'Content-Type': file.type,
+        },
       });
+
+      console.log('S3 Key:', key);
+      console.log('Public URL from backend:', publicUrl);
+
+      // Step 3: Store the key for later use
+      setProfilePictureKey(key);
+      
+      // Step 4: Get public URL
+      // Option 1: Use publicUrl from backend response (BEST - backend should provide this)
+      let publicImageUrl = publicUrl;
+      
+      // Option 2: If backend didn't provide, construct from key
+      if (!publicImageUrl && key) {
+        publicImageUrl = getPublicUrlFromKey(key);
+      }
+
+      if (publicImageUrl) {
+        setProfilePictureUrl(publicImageUrl);
+        setImageUrl(publicImageUrl);
+      } else {
+        // Fallback to base64 preview if public URL not available
+        getBase64(file, (url) => {
+          setImageUrl(url);
+        });
+      }
+
+      showSuccess('Profile picture uploaded successfully!');
+    } catch (err) {
+      showError('Failed to upload profile picture: ' + (err?.response?.data?.message || err?.message || 'Unknown error'));
+      console.error('Upload error:', err);
+    } finally {
+      setUploadLoading(false);
     }
   };
 
   const onFinish = async (values) => {
     try {
-      if (imageUrl === null) {
-        showError('Please upload a profile picture');
-        return;
-      }
-      // Create FormData for file upload
-      const formData = new FormData();
-
       // Format dates if they exist (DatePicker returns dayjs objects)
-      const data = {
+      const payload = {
         ...values,
         dateOfBirth: values.dateOfBirth
           ? values.dateOfBirth.format('YYYY-MM-DD')
           : undefined,
         joiningDate: values.joiningDate
           ? values.joiningDate.format('YYYY-MM-DD')
-          : undefined
+          : undefined,
+        // Add the S3 key instead of the file
+        profilePictureKey: profilePictureKey || undefined,
+        // Optionally send public URL if available
+        profilePictureUrl: profilePictureUrl || undefined
       };
 
-      // Remove undefined, null, or empty string fields and add to FormData
-      Object.keys(data).forEach((key) => {
-        if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
-          // Skip profilePictureUrl as we'll add the file separately
-          if (key !== 'profilePictureUrl') {
-            formData.append(key, data[key]);
-          }
+      // Remove undefined, null, or empty string fields
+      Object.keys(payload).forEach((key) => {
+        if (payload[key] === undefined || payload[key] === null || payload[key] === '') {
+          delete payload[key];
         }
       });
 
-      // Add the file if it exists
-      if (file) {
-        formData.append('profileImage', file);
-      }
-
-      // Call API to add employee with FormData
-      await postData('/users/create-employee', formData, false, false);
+      // Call API to add employee with JSON payload (not FormData)
+      await postData('/users/create-employee', payload, false, false);
 
       // Show success message
       showSuccess('Employee added successfully');
@@ -134,7 +179,8 @@ const AddEmployee = () => {
       setTimeout(() => {
         form.resetFields();
         setImageUrl(null);
-        setFile(null);
+        setProfilePictureKey(null);
+        setProfilePictureUrl(null);
         navigate('/dashboard');
       }, 1500);
     } catch (err) {
@@ -164,10 +210,16 @@ const AddEmployee = () => {
               name='avatar'
               listType='text'
               showUploadList={false}
-              beforeUpload={beforeUpload}
-              onChange={handleChange}
+              beforeUpload={(file) => {
+                const isValid = beforeUpload(file);
+                if (isValid) {
+                  handleProfileChange(file);
+                }
+                return false; // Prevent auto upload
+              }}
               accept='image/*'
               className='absolute bottom-0 right-0'
+              disabled={uploadLoading}
             >
               <Button
                 type='primary'
@@ -175,6 +227,7 @@ const AddEmployee = () => {
                 icon={<UploadOutlined />}
                 size='small'
                 className='bg-primary hover:bg-primary/80 border-2 border-white'
+                loading={uploadLoading}
               />
             </Upload>
           </div>
@@ -340,7 +393,7 @@ const AddEmployee = () => {
           </div>
         </Form>
       </div>
-      {loading && <Spinner />}
+      {(loading || uploadLoading) && <Spinner />}
     </Layout>
   );
 };

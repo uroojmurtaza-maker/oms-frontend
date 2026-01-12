@@ -15,10 +15,10 @@ const useApiHandler = (token) => {
     async (endpoint, params = {}) => {
       const MIN_LOADING_TIME = 2000; // 2 seconds
       const startTime = Date.now();
-  
+
       setLoading(true);
       setError(null);
-  
+
       try {
         const response = await axios.get(`${BASE_URL}${endpoint}`, {
           headers: {
@@ -26,7 +26,7 @@ const useApiHandler = (token) => {
           },
           params,
         });
-  
+
         setData(response?.data);
         setTotalPages(response?.data?.pagination?.totalPages || 0);
         return response.data;
@@ -36,7 +36,7 @@ const useApiHandler = (token) => {
       } finally {
         const elapsedTime = Date.now() - startTime;
         const remainingTime = Math.max(MIN_LOADING_TIME - elapsedTime, 0);
-  
+
         setTimeout(() => {
           setLoading(false);
         }, remainingTime);
@@ -44,7 +44,7 @@ const useApiHandler = (token) => {
     },
     [token]
   );
-  
+
 
   // ✅ Generic POST request (custom URL or relative endpoint)
   const postData = useCallback(

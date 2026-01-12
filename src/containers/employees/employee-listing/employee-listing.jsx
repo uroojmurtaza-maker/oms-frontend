@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import useApiHandler from '../../../hooks/api-handler';
 import { useAuth } from '../../../context/authContext';
 import Spinner from '../../../atoms/spinner/spinner';
+import useDebounce from '../../../hooks/useDebounce';
 
 const EmployeesListing = () => {
   const [page, setPage] = useState(1);
@@ -21,6 +22,9 @@ const EmployeesListing = () => {
   const { getData, deleteData, loading, apiMessage, data,totalPages } =
     useApiHandler(token);
   const [messageApi, contextHolder] = message.useMessage();
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
+
 
   console.log('loading', data);
 
@@ -42,22 +46,23 @@ const EmployeesListing = () => {
   }, [apiMessage, showError]);
 
   // Fetch employees data
-  const fetchEmployees = useCallback(async () => {
+  const fetchEmployees = async()=>{
     const params = {
       page,
-      limit: 6
+      limit: 6,
+      ...(debouncedSearch && { search: debouncedSearch })
     };
     try {
       await getData('/users/get-employees', params);
     } catch (err) {
       console.error('Error fetching employees:', err);
     }
-  }, [getData, page]);
+  }
 
   useEffect(() => {
     fetchEmployees();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page,debouncedSearch]);
 
   const columns = [
     {
@@ -220,7 +225,8 @@ const EmployeesListing = () => {
         title='Employees'
         showSearch={true}
         searchPlaceholder='Search by name or email'
-        onSearch={(value) => {
+          onSearch={(value) => {
+          setSearch(value);
           console.log('Search value:', value);
         }}
         actionButton={[
