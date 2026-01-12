@@ -14,6 +14,7 @@ import useApiHandler from '../../../hooks/api-handler';
 import { useAuth } from '../../../context/authContext';
 import Spinner from '../../../atoms/spinner/spinner';
 import useDebounce from '../../../hooks/useDebounce';
+import { DESIGNATIONS, DEPARTMENTS } from '../../../constants/data';
 
 const EmployeesListing = () => {
   const [page, setPage] = useState(1);
@@ -229,6 +230,18 @@ const EmployeesListing = () => {
           setSearch(value);
           console.log('Search value:', value);
         }}
+       arrayFilters={[{
+        label: 'Designation',
+          value: 'designation',
+          placeholder: 'Select Designation',
+          options: DESIGNATIONS
+        }, {
+          
+          label: 'Department',
+          value: 'department',
+          placeholder: 'Select Department',
+          options: DEPARTMENTS
+      }]}
         actionButton={[
           {
             label: 'Add Employee',

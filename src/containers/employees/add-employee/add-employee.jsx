@@ -20,6 +20,7 @@ import { useAuth } from '../../../context/authContext';
 import Spinner from '../../../atoms/spinner/spinner';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import { DESIGNATIONS, DEPARTMENTS } from '../../../constants/data';
 const { Option } = Select;
 
 const AddEmployee = () => {
@@ -295,10 +296,11 @@ const AddEmployee = () => {
                 rules={[{ required: true, message: 'Designation is required' }]}
               >
                 <Select placeholder='Select Designation' size='large'>
-                  <Option value='Manager'>Manager</Option>
-                  <Option value='Developer'>Developer</Option>
-                  <Option value='Designer'>Designer</Option>
-                  <Option value='HR'>HR</Option>
+                  {DESIGNATIONS.map((designation) => (
+                    <Option key={designation.value} value={designation.value}>
+                      {designation.label}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -309,10 +311,11 @@ const AddEmployee = () => {
                 rules={[{ required: true, message: 'Department is required' }]}
               >
                 <Select placeholder='Select Department' size='large'>
-                  <Option value='Engineering'>Engineering</Option>
-                  <Option value='Sales'>Sales</Option>
-                  <Option value='Marketing'>Marketing</Option>
-                  <Option value='HR'>HR</Option>
+                  {DEPARTMENTS.map((department) => (
+                    <Option key={department.value} value={department.value}>
+                      {department.label}
+                    </Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>
