@@ -28,9 +28,9 @@ const Button = ({
     primary: "bg-primary text-white hover:bg-[#E1AB20]",
     secondary: "bg-gray-600 text-white hover:bg-gray-700",
     success: "bg-green-600 text-white hover:bg-green-700",
-    danger: "bg-red-600 text-white hover:bg-red-700",
+    danger: "bg-red-700 text-white hover:bg-red-800",
     warning: "bg-yellow-500 text-white hover:bg-yellow-600",
-    blue: "bg-[#1E3B8A] hover:bg-blue-700 text-white",
+    blue: "bg-[#1e293b] hover:bg-blue-700 text-white",
   };
 
   const outlineStyles = {

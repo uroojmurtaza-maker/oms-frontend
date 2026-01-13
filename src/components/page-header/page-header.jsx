@@ -23,7 +23,7 @@ const PageHeader = ({
   extraContent
 }) => {
   return (
-    <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0 md:pb-4'>
+    <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0 md:pb-4 pb-4 border-b border-gray-200'>
       {/* Title & Back Button */}
       <div className='flex items-center gap-2 md:mb-0 mb-3'>
         {onBack &&
