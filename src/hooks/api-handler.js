@@ -13,7 +13,7 @@ const useApiHandler = (token) => {
   // ✅ Generic GET request
   const getData = useCallback(
     async (endpoint, params = {}) => {
-      const MIN_LOADING_TIME = 2000; // 2 seconds
+      const MIN_LOADING_TIME = 1000; // 1 second
       const startTime = Date.now();
 
       setLoading(true);

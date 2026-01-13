@@ -10,7 +10,7 @@ const CustomTable = ({
   page,
   setPage,
   totalPages,
-  pageSize = 6,
+  pageSize = 10,
   loading,
 }) => {
   // ✨ Enhance columns with smart auto-formatting
@@ -50,11 +50,7 @@ const CustomTable = ({
           }
         }
 
-        // ☎️ Combine countryCode + phoneNumber
-        if (col.dataIndex === "phoneNumber") {
-          const { countryCode, phoneNo } = record || {};
-          value = countryCode && phoneNo ? `${countryCode} ${phoneNo}` : "----";
-        }
+       
 
         // 🧩 Default fallback for empty values
         if (value === null || value === undefined || value === "") {

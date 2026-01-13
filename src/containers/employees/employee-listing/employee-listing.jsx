@@ -25,6 +25,10 @@ const EmployeesListing = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 500);
+  const [designationFilter, setDesignationFilter] = useState(null);
+  const [departmentFilter, setDepartmentFilter] = useState(null);
+  const [sortBy, setSortBy] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
 
 
   console.log('loading', data);
@@ -50,8 +54,12 @@ const EmployeesListing = () => {
   const fetchEmployees = async()=>{
     const params = {
       page,
-      limit: 6,
-      ...(debouncedSearch && { search: debouncedSearch })
+      limit: 10,
+      ...(debouncedSearch && { search: debouncedSearch }),
+      ...(designationFilter && { designation: designationFilter }),
+      ...(departmentFilter && { department: departmentFilter }),
+      ...(sortBy && { sortBy }),
+      ...(sortOrder && { sortOrder })
     };
     try {
       await getData('/users/get-employees', params);
@@ -63,7 +71,46 @@ const EmployeesListing = () => {
   useEffect(() => {
     fetchEmployees();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page,debouncedSearch]);
+  }, [page, debouncedSearch, designationFilter, departmentFilter, sortBy, sortOrder]);
+
+  // Reset page to 1 when filters or sorting change
+  useEffect(() => {
+    setPage(1);
+  }, [designationFilter, departmentFilter, debouncedSearch, sortBy, sortOrder]);
+
+  // Handle column sorting
+  const handleSort = (columnKey) => {
+    // Valid sort fields mapping
+    const fieldMap = {
+      'name': 'name',
+      'department': 'department',
+      'joiningDate': 'joiningDate'
+    };
+
+    const sortField = fieldMap[columnKey];
+    if (!sortField) return;
+
+    // If clicking the same column, toggle order
+    if (sortBy === sortField) {
+      if (sortOrder === 'asc') {
+        setSortOrder('desc');
+      } else if (sortOrder === 'desc') {
+        // Clear sorting if clicking desc again
+        setSortBy(null);
+        setSortOrder(null);
+      }
+    } else {
+      // New column, set to ascending
+      setSortBy(sortField);
+      setSortOrder('asc');
+    }
+  };
+
+  // Clear sorting
+  const clearSorting = () => {
+    setSortBy(null);
+    setSortOrder(null);
+  };
 
   const columns = [
     {
@@ -75,7 +122,11 @@ const EmployeesListing = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      sorter: true,
+      sorter: () => 0, // Prevent client-side sorting, we do server-side
+      sortOrder: sortBy === 'name' ? sortOrder : null,
+      onHeaderCell: () => ({
+        onClick: () => handleSort('name'),
+      }),
       render: (text, record) => (
         <div className='flex items-center gap-3'>
           <Avatar
@@ -107,7 +158,11 @@ const EmployeesListing = () => {
       title: 'Department',
       dataIndex: 'department',
       key: 'department',
-      sorter: true
+      sorter: () => 0, // Prevent client-side sorting, we do server-side
+      sortOrder: sortBy === 'department' ? sortOrder : null,
+      onHeaderCell: () => ({
+        onClick: () => handleSort('department'),
+      })
     },
     {
       title: 'Phone Number',
@@ -123,7 +178,11 @@ const EmployeesListing = () => {
       title: 'Joining Date',
       dataIndex: 'joiningDate',
       key: 'joiningDate',
-      sorter: true
+      sorter: () => 0, // Prevent client-side sorting, we do server-side
+      sortOrder: sortBy === 'joiningDate' ? sortOrder : null,
+      onHeaderCell: () => ({
+        onClick: () => handleSort('joiningDate'),
+      })
     },
     {
       title: 'Salary',
@@ -232,17 +291,27 @@ const EmployeesListing = () => {
         }}
        arrayFilters={[{
         label: 'Designation',
-          value: 'designation',
+          value: designationFilter,
           placeholder: 'Select Designation',
-          options: DESIGNATIONS
+          options: DESIGNATIONS,
+          onChange: (value) => {
+            setDesignationFilter(value);
+          }
         }, {
-          
           label: 'Department',
-          value: 'department',
+          value: departmentFilter,
           placeholder: 'Select Department',
-          options: DEPARTMENTS
+          options: DEPARTMENTS,
+          onChange: (value) => {
+            setDepartmentFilter(value);
+          }
       }]}
         actionButton={[
+          ...(sortBy ? [{
+            label: 'Clear Sort',
+            onClick: clearSorting,
+            type: 'danger'
+          }] : []),
           {
             label: 'Add Employee',
             onClick: () => {
