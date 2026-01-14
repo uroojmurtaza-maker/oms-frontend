@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   MenuOutlined,
   KeyOutlined,
@@ -8,18 +8,19 @@ import {
   DownOutlined,
   UserOutlined
 } from '@ant-design/icons';
-import { Dropdown, Avatar, Space, message } from 'antd';
+import { Dropdown, Avatar, Space, message, Modal, Form, Input, Button } from 'antd';
 import Spinner from '../../atoms/spinner/spinner';
 import useApiHandler from '../../hooks/api-handler';
 import { useAuth } from '../../context/authContext';
 
 const Header = () => {
   const router = useNavigate();
-  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const [changePasswordForm] = Form.useForm();
   const { user, token } = useAuth();
 
-  const { postData, loading, apiMessage } = useApiHandler(token);
+  const { postData, putData, loading, apiMessage } = useApiHandler(token);
 
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -33,55 +34,52 @@ const Header = () => {
     [messageApi]
   );
 
+  const showSuccess = useCallback(
+    (msg) => {
+      messageApi.open({
+        type: 'success',
+        content: msg
+      });
+    },
+    [messageApi]
+  );
+
   useEffect(() => {
     if (apiMessage) {
       showError(apiMessage);
     }
   }, [apiMessage, showError]);
 
-  const links = [
-    {
-      title: 'Ticket Dashboard',
-      link: '/Support',
-      roles: [
-        'superadmin',
-        'client-admin',
-        'customer-support',
-        'developer',
-        'client-employee'
-      ]
-    },
-    {
-      title: 'Clients',
-      link: '/clients',
-      roles: ['superadmin', 'customer-support']
-    },
-    { title: 'Projects', link: '/projects', roles: ['client-admin'] },
-    {
-      title: 'Employees',
-      link: '/jabemployees-listing',
-      roles: ['client-admin']
-    },
-    {
-      title: 'JABG Users',
-      link: '/jabemployees-listing',
-      roles: ['superadmin', 'customer-support']
-    },
-    { title: 'Control Panel', link: '/AdminDashboard', roles: ['superadmin'] },
-    {
-      title: 'Website',
-      link: '/',
-      roles: [
-        'superadmin',
-        'client-admin',
-        'customer-support',
-        'developer',
-        'client-employee'
-      ]
-    }
-  ];
+  const handleChangePassword = async () => {
+    try {
+      const values = await changePasswordForm.validateFields();
 
-  const filteredLinks = links.filter((item) => item.roles.includes(user?.role));
+      // Check if new password and confirm password match
+      if (values.newPassword !== values.confirmPassword) {
+        showError('New password and confirm password do not match!');
+        return;
+      }
+
+      const data = {
+        oldPassword: values.oldPassword,
+        newPassword: values.newPassword
+      };
+
+      await putData('/auth/change-password', data, false, false);
+      showSuccess('Password changed successfully!');
+      setChangePasswordModalOpen(false);
+      changePasswordForm.resetFields();
+    } catch (err) {
+      // Error is already handled by the API handler
+      if (err?.errorFields) {
+        // Form validation error
+
+        console.error('Form validation failed:', err);
+      } else {
+        console.error('Change password error:', err);
+      }
+    }
+  };
 
   const logout = async () => {
     try {
@@ -97,11 +95,25 @@ const Header = () => {
   };
 
   const items = [
+    
+    {
+      key: '0',
+      label: (
+          <Link to={'/profile'}>
+          <div
+            className='flex items-center gap-2 text-gray-700 hover:text-primary'
+          >
+            <UserOutlined /> Profile
+          </div>
+        </Link>
+      )
+    },
     {
       key: '1',
       label: (
         <div
-          className='flex items-center gap-2 text-gray-700 hover:text-primary'
+          onClick={() => setChangePasswordModalOpen(true)}
+          className='flex items-center gap-2 text-gray-700 hover:text-primary cursor-pointer'
         >
           <KeyOutlined /> Change Password
         </div>
@@ -149,29 +161,6 @@ const Header = () => {
               <MenuOutlined style={{ fontSize: '28px' }} />
             </button>
           </div>
-          {/* Desktop Navigation */}
-          <nav className='hidden md:block'>
-            <ul className='flex space-x-14'>
-              {filteredLinks?.map((item, index) => (
-                <li key={index}>
-                  <div
-                    // to={item.link}
-                    onClick={() => {
-                      router(item.link);
-                    }}
-                    className={`transition-colors duration-300 text-md font-medium cursor-pointer ${
-                      location.pathname === item.link
-                        ? 'text-primary underline font-semibold underline-offset-4'
-                        : 'hover:text-primary font-medium'
-                    }`}
-                  >
-                    {item.title}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
           {/* Profile Dropdown (Desktop Only) */}
           <div className='hidden sm:flex items-center'>
             <Dropdown
@@ -234,27 +223,10 @@ const Header = () => {
             </button>
           </div>
 
-          {/* Menu Links */}
-          <nav className='flex-1 overflow-y-auto'>
+        {/* Menu Links */}
+        <nav className='flex-1 overflow-y-auto'>
             <ul className='px-6 py-4 space-y-4'>
-              {filteredLinks?.map((item, index) => (
-                <li key={index}>
-                  <div
-                    // to={item.link}
-                    className={`block text-base font-medium transition-colors duration-300 cursor-pointer ${
-                      location.pathname === item.link
-                        ? 'text-primary font-semibold'
-                        : 'text-gray-800 hover:text-primary'
-                    }`}
-                    onClick={() => {
-                      router(item.link);
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    {item.title}
-                  </div>
-                </li>
-              ))}
+             
 
               {/* Profile-related Options inside menu for mobile */}
               {items?.map((opt) => (
@@ -267,31 +239,117 @@ const Header = () => {
             </ul>
           </nav>
 
+          
+
+
           {/* Footer (User Info) */}
           <div className='border-t border-gray-200 px-6 py-4 flex items-center gap-3'>
             <Avatar icon={<UserOutlined />} size='large' />
             <div>
               <div className='text-gray-800 font-medium text-sm'>
-                Super Admin
+                {user?.name || 'User Name'}
               </div>
-              <div className='text-gray-500 text-xs'>Admin Account</div>
+              <div className='text-gray-500 text-xs'>{user?.role
+                      ? user.role
+                          .replace(/[-_]/g, ' ')
+                          .replace(/\b\w/g, (char) => char.toUpperCase())
+                      : 'User'}</div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* <ChangePasswordModal
-        open={openPasswordModal}
-        onClose={() => setOpenPasswordModal(false)}
-        oldPass={oldPass}
-        setOldPass={setOldPass}
-        newPass={newPass}
-        setNewPass={setNewPass}
-        confirmPass={confirmPass}
-        setConfirmPass={setConfirmPass}
-        handleChange={handleChangePassword}
-        // showAlert={showAlert} // <-- important
-      /> */}
+      {/* Change Password Modal */}
+      <Modal
+        title="Change Password"
+        open={changePasswordModalOpen}
+        onCancel={() => {
+          setChangePasswordModalOpen(false);
+          changePasswordForm.resetFields();
+        }}
+        footer={null}
+        width={500}
+      >
+        <Form
+          form={changePasswordForm}
+          layout="vertical"
+          onFinish={handleChangePassword}
+          className="mt-4"
+        >
+          <Form.Item
+            name="oldPassword"
+            label="Old Password"
+            rules={[
+              { required: true, message: 'Please enter your old password!' }
+            ]}
+          >
+            <Input.Password
+              placeholder="Enter old password"
+              className="w-full"
+              size='large'
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="newPassword"
+            label="New Password"
+            rules={[
+              { required: true, message: 'Please enter your new password!' },
+              { min: 6, message: 'Password must be at least 6 characters!' }
+            ]}
+          >
+            <Input.Password
+              placeholder="Enter new password"
+              className="w-full"
+              size='large'
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="confirmPassword"
+            label="Confirm New Password"
+            dependencies={['newPassword']}
+            rules={[
+              { required: true, message: 'Please confirm your new password!' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('newPassword') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('The two passwords do not match!'));
+                }
+              })
+            ]}
+          >
+            <Input.Password
+              placeholder="Confirm new password"
+              className="w-full"
+              size='large'
+            />
+          </Form.Item>
+
+          <Form.Item className="mb-0 mt-6">
+            <div className="flex justify-end gap-3">
+              <Button
+                onClick={() => {
+                  setChangePasswordModalOpen(false);
+                  changePasswordForm.resetFields();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                className="bg-primary hover:bg-[#E1AB20]"
+              >
+                Change Password
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {loading && <Spinner />}
     </div>
