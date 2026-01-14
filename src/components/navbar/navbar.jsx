@@ -171,8 +171,8 @@ const Header = () => {
             >
               <button className='flex items-center gap-2 bg-white border border-gray-200 rounded-full px-5 py-1.5 shadow-sm hover:bg-gray-50 transition'>
                 <Avatar
-                  src={user?.image || user?.company?.companyLogo}
-                  size='medium'
+                  src={user?.profileImageUrl}
+                  size={40}
                 />
                 <div className='flex flex-col text-left leading-tight mr-2'>
                   <span className='text-gray-800 text-sm font-medium'>
@@ -244,7 +244,7 @@ const Header = () => {
 
           {/* Footer (User Info) */}
           <div className='border-t border-gray-200 px-6 py-4 flex items-center gap-3'>
-            <Avatar icon={<UserOutlined />} size='large' />
+            <Avatar src={user?.profileImageUrl} size={50} />
             <div>
               <div className='text-gray-800 font-medium text-sm'>
                 {user?.name || 'User Name'}
